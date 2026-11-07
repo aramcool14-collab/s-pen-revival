@@ -8,7 +8,6 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
-import android.view.Gravity
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
@@ -24,142 +23,130 @@ class MainActivity : Activity() {
     private lateinit var lastGesture: TextView
     private lateinit var lastAction: TextView
     private lateinit var detector: StylusDetector
-    private lateinit var commands: CommandManager
     private lateinit var gestureSwitch: Switch
 
-    private val page = Color.rgb(10, 14, 24)
-    private val panel = Color.rgb(23, 30, 45)
-    private val accent = Color.rgb(91, 151, 255)
-    private val muted = Color.rgb(166, 180, 202)
+    private val page = Color.rgb(8, 12, 22)
+    private val panel = Color.rgb(24, 31, 47)
+    private val accent = Color.rgb(111, 164, 255)
+    private val muted = Color.rgb(174, 187, 207)
     private val prefs by lazy { getSharedPreferences("spen_settings", MODE_PRIVATE) }
-    private val gestureOptions = listOf(
-        "Do nothing", "Open camera", "Play / pause", "Next track",
-        "Previous track", "Volume up", "Volume down"
-    )
     private val gestureKeys = listOf(
-        "button_tap", "button_swipe_left", "button_swipe_right",
-        "button_swipe_up", "button_swipe_down"
+        "button_tap", "button_double_tap", "button_hold",
+        "button_swipe_left", "button_swipe_right", "button_swipe_up", "button_swipe_down"
     )
     private val gestureNames = listOf(
-        "Side button + tap", "Side button + swipe left",
-        "Side button + swipe right", "Side button + swipe up",
-        "Side button + swipe down"
+        "Side button + tap", "Side button + double tap", "Side button + hold",
+        "Side button + swipe left", "Side button + swipe right",
+        "Side button + swipe up", "Side button + swipe down"
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.statusBarColor = page
         window.navigationBarColor = page
-        commands = CommandManager(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(20, 24, 20, 24)
+            setPadding(dp(20), dp(24), dp(20), dp(28))
             setBackgroundColor(page)
         }
         val scroll = ScrollView(this).apply { addView(root) }
 
-        root.addView(label("S PEN REVIVAL", 13f, accent, true))
-        root.addView(label("Your pen. Your shortcuts.", 27f, Color.WHITE, true, 8))
-        root.addView(label("A personal Air Command experience", 14f, muted, false, 5))
+        root.addView(label("S PEN REVIVAL  •  ONE UI EDITION", 12f, accent, true))
+        root.addView(label("Make your S Pen yours.", 29f, Color.WHITE, true, 10))
+        root.addView(label("Shortcuts, gestures and camera controls.", 14f, muted, false, 5))
+
+        val cameraCard = card()
+        cameraCard.addView(label("S PEN CAMERA", 12f, accent, true))
+        cameraCard.addView(label("A dedicated camera with touch controls for zoom, exposure, flash and more.", 14f, Color.WHITE, false, 9))
+        addButton(cameraCard, "Open S Pen Camera  ›", true) {
+            startActivity(Intent(this, CameraActivity::class.java))
+        }
+        root.addView(cameraCard, params(20))
 
         val setupCard = card()
-        setupCard.addView(label("FLOATING AIR COMMAND", 13f, accent, true))
-        setupCard.addView(label(
-            "No split screen or dock. Allow the floating menu to appear above your other apps.",
-            14f, Color.WHITE, false, 10
-        ))
-        addSetupButton(setupCard, "Allow floating menu") {
-            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")))
+        setupCard.addView(label("AIR COMMAND", 12f, accent, true))
+        setupCard.addView(label("Keep a floating shortcut bubble above your apps. It does not need split screen.", 14f, Color.WHITE, false, 8))
+        addButton(setupCard, "Allow floating menu", false) {
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
         }
-        addSetupButton(setupCard, "Enable S Pen Revival service") {
+        addButton(setupCard, "Accessibility service settings", false) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
-        setupCard.addView(label(
-            "The floating menu currently provides system shortcuts. It does not read screen content or take over normal pen input.",
-            12f, muted, false, 8
-        ))
-        root.addView(setupCard, params(top = 20))
+        setupCard.addView(label("The service provides visible shortcuts. It does not read screen contents or intercept normal pen movement.", 12f, muted, false, 8))
+        root.addView(setupCard, params(14))
 
         val statusCard = card()
-        status = label("S Pen input is detected while this app is open.", 15f, Color.WHITE, true)
-        lastGesture = label("Last gesture: none", 14f, muted, false, 12)
-        lastAction = label("Last action: none", 14f, muted, false, 6)
+        status = label("S Pen input is detected while this app is open.", 14f, Color.WHITE, true)
+        lastGesture = label("Last gesture: none", 13f, muted, false, 10)
+        lastAction = label("Last action: none", 13f, muted, false, 5)
         statusCard.addView(status)
         statusCard.addView(lastGesture)
         statusCard.addView(lastAction)
-        root.addView(statusCard, params(top = 14))
+        root.addView(statusCard, params(14))
 
         val customCard = card()
-        customCard.addView(label("CUSTOM PEN GESTURES", 13f, accent, true))
-        customCard.addView(label(
-            "Turn this on to run your own shortcuts while holding the S Pen side button. Let go of the button and the pen works normally.",
-            14f, Color.WHITE, false, 9
-        ))
+        customCard.addView(label("GESTURE STUDIO", 12f, accent, true))
+        customCard.addView(label("Choose a gesture, then choose what happens. You can customize every gesture independently.", 14f, Color.WHITE, false, 8))
         gestureSwitch = Switch(this).apply {
-            text = "Enable custom gestures"
+            text = "Custom gestures enabled"
             textSize = 15f
             setTextColor(Color.WHITE)
             isChecked = prefs.getBoolean("gestures_enabled", true)
         }
-        customCard.addView(gestureSwitch, params(top = 12))
+        customCard.addView(gestureSwitch, params(12))
         gestureSwitch.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean("gestures_enabled", checked).apply()
             updateGestureControlsEnabled()
         }
-        customCard.addView(label("Choose what each button gesture does:", 13f, muted, false, 14))
-
+        customCard.addView(label("${ActionCatalog.actions.size} available actions", 13f, muted, true, 14))
         for (i in gestureKeys.indices) {
-            customCard.addView(label(gestureNames[i], 14f, Color.WHITE, true, 12))
+            customCard.addView(label(gestureNames[i], 14f, Color.WHITE, true, 13))
             val spinner = Spinner(this).apply {
                 adapter = ArrayAdapter(
                     this@MainActivity,
                     android.R.layout.simple_spinner_item,
-                    gestureOptions
+                    ActionCatalog.actions
                 ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
                 val saved = prefs.getString(gestureKeys[i], defaultActionFor(i)) ?: defaultActionFor(i)
-                setSelection(gestureOptions.indexOf(saved).coerceAtLeast(0))
+                setSelection(ActionCatalog.actions.indexOf(saved).coerceAtLeast(0))
                 isEnabled = gestureSwitch.isChecked
                 onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                     override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-                    override fun onItemSelected(
-                        parent: android.widget.AdapterView<*>?, view: android.view.View?,
-                        position: Int, id: Long
-                    ) {
-                        prefs.edit().putString(gestureKeys[i], gestureOptions[position]).apply()
+                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                        prefs.edit().putString(gestureKeys[i], ActionCatalog.actions[position]).apply()
                     }
                 }
             }
-            customCard.addView(spinner, params(top = 3))
+            customCard.addView(spinner, params(4))
         }
-        root.addView(customCard, params(top = 14))
+        root.addView(customCard, params(14))
         updateGestureControlsEnabled()
 
-        val controls = card()
-        controls.addView(label("QUICK CONTROLS", 13f, accent, true))
-        addActionButton(controls, "Open camera", "Camera opened") { commands.launchCamera() }
-        addActionButton(controls, "Volume up", "Volume up") { commands.volumeUp(); true }
-        addActionButton(controls, "Volume down", "Volume down") { commands.volumeDown(); true }
-        addActionButton(controls, "Play / pause", "Media play / pause") { commands.mediaPlayPause(); true }
-        addActionButton(controls, "Next track", "Next track") { commands.mediaNext(); true }
-        addActionButton(controls, "Previous track", "Previous track") { commands.mediaPrevious(); true }
-        root.addView(controls, params(top = 14))
+        val quick = card()
+        quick.addView(label("QUICK ACTIONS", 12f, accent, true))
+        addButton(quick, "Camera", false) { startActivity(Intent(this, CameraActivity::class.java)) }
+        addButton(quick, "Play / pause", false) { runQuick("Play / pause media") }
+        addButton(quick, "Volume up", false) { runQuick("Volume up") }
+        addButton(quick, "Volume down", false) { runQuick("Volume down") }
+        addButton(quick, "Next track", false) { runQuick("Next track") }
+        addButton(quick, "Previous track", false) { runQuick("Previous track") }
+        root.addView(quick, params(14))
 
         root.addView(label(
-            "Compatibility note: custom pen gestures are currently detected while this app is open. The floating menu works above other apps, but Android does not automatically deliver every S Pen movement to a normal app in the background.",
+            "Compatibility: gesture detection works only for S Pen events Android delivers to this app while it is open. The S25 Ultra S Pen has no Bluetooth Air Actions hardware, so remote S24-style gestures cannot be added by an app.",
             12f, muted, false, 18
         ))
 
         val engine = GestureEngine { gesture ->
             runOnUiThread {
-                lastGesture.text = "Last gesture: ${gesture.name.replace('_', ' ')}"
+                lastGesture.text = "Last gesture: ${gesture.name.replace('_', ' ').lowercase()}"
                 if (!prefs.getBoolean("gestures_enabled", true)) {
                     lastAction.text = "Last action: custom gestures are off"
                 } else {
                     val actionName = prefs.getString(gestureKeyFor(gesture), "Do nothing") ?: "Do nothing"
-                    val result = runGestureAction(actionName)
-                    lastAction.text = "Last action: " + if (result.second) result.first else "Not available"
+                    val ok = ActionCatalog.execute(this, actionName)
+                    lastAction.text = "Last action: " + if (ok) actionName else "${actionName} isn't available on this phone"
                 }
             }
         }
@@ -171,95 +158,79 @@ class MainActivity : Activity() {
     }
 
     private fun defaultActionFor(index: Int) = when (index) {
-        0 -> "Play / pause"
-        1 -> "Previous track"
-        2 -> "Next track"
-        3 -> "Volume up"
-        4 -> "Volume down"
+        0 -> "Play / pause media"
+        1 -> "Open S Pen Revival camera"
+        2 -> "Open Samsung Camera"
+        3 -> "Previous track"
+        4 -> "Next track"
+        5 -> "Volume up"
+        6 -> "Volume down"
         else -> "Do nothing"
     }
 
     private fun gestureKeyFor(gesture: PenGesture) = when (gesture) {
         PenGesture.BUTTON_TAP -> "button_tap"
+        PenGesture.BUTTON_DOUBLE_TAP -> "button_double_tap"
+        PenGesture.BUTTON_HOLD -> "button_hold"
         PenGesture.BUTTON_SWIPE_LEFT -> "button_swipe_left"
         PenGesture.BUTTON_SWIPE_RIGHT -> "button_swipe_right"
         PenGesture.BUTTON_SWIPE_UP -> "button_swipe_up"
         PenGesture.BUTTON_SWIPE_DOWN -> "button_swipe_down"
-        else -> "button_tap"
     }
 
-    private fun runGestureAction(action: String): Pair<String, Boolean> = when (action) {
-        "Open camera" -> "Open camera" to commands.launchCamera()
-        "Play / pause" -> { commands.mediaPlayPause(); "Play / pause" to true }
-        "Next track" -> { commands.mediaNext(); "Next track" to true }
-        "Previous track" -> { commands.mediaPrevious(); "Previous track" to true }
-        "Volume up" -> { commands.volumeUp(); "Volume up" to true }
-        "Volume down" -> { commands.volumeDown(); "Volume down" to true }
-        else -> "Do nothing" to true
+    private fun runQuick(action: String) {
+        val ok = ActionCatalog.execute(this, action)
+        lastAction.text = if (ok) "Last action: $action" else "Last action: unavailable"
     }
 
     private fun updateGestureControlsEnabled() {
+        val parent = gestureSwitch.parent as? LinearLayout ?: return
         val enabled = gestureSwitch.isChecked
-        for (i in 0 until (gestureSwitch.parent as? LinearLayout)?.childCount.orZero()) {
-            val child = (gestureSwitch.parent as LinearLayout).getChildAt(i)
+        for (i in 0 until parent.childCount) {
+            val child = parent.getChildAt(i)
             if (child is Spinner) child.isEnabled = enabled
         }
     }
 
-    private fun Int?.orZero() = this ?: 0
-
     private fun card() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(18, 18, 18, 18)
-        background = rounded(panel, 22)
+        setPadding(dp(18), dp(18), dp(18), dp(18))
+        background = rounded(panel, 24)
     }
 
-    private fun label(textValue: String, size: Float, color: Int, bold: Boolean, top: Int = 0) =
+    private fun label(value: String, size: Float, color: Int, bold: Boolean, top: Int = 0) =
         TextView(this).apply {
-            text = textValue
+            text = value
             textSize = size
             setTextColor(color)
             if (bold) setTypeface(typeface, Typeface.BOLD)
-            if (top > 0) setPadding(0, top, 0, 0)
+            if (top > 0) setPadding(0, dp(top), 0, 0)
         }
 
-    private fun addSetupButton(parent: LinearLayout, text: String, action: () -> Unit) {
+    private fun addButton(parent: LinearLayout, title: String, primary: Boolean, action: () -> Unit) {
         val button = Button(this).apply {
-            this.text = text
+            text = title
             isAllCaps = false
+            textSize = 14f
             setTextColor(Color.WHITE)
-            background = rounded(Color.rgb(39, 75, 125), 15)
+            background = rounded(if (primary) Color.rgb(49, 105, 205) else Color.rgb(43, 57, 80), 16)
             setOnClickListener { action() }
         }
         parent.addView(button, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { topMargin = 8 })
-    }
-
-    private fun addActionButton(parent: LinearLayout, text: String, actionName: String, action: () -> Boolean) {
-        val button = Button(this).apply {
-            this.text = text
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = rounded(Color.rgb(39, 57, 84), 15)
-            setOnClickListener {
-                val ok = action()
-                lastAction.text = "Last action: " + if (ok) actionName else "Not available"
-            }
-        }
-        parent.addView(button, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { topMargin = 7 })
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(50)
+        ).apply { topMargin = dp(8) })
     }
 
     private fun rounded(color: Int, radius: Int) = GradientDrawable().apply {
         setColor(color)
-        cornerRadius = radius * resources.displayMetrics.density
+        cornerRadius = dp(radius).toFloat()
     }
 
     private fun params(top: Int) = LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-    ).apply { topMargin = top }
+    ).apply { topMargin = dp(top) }
+
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         detector.handle(event)
