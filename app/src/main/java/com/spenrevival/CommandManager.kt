@@ -3,6 +3,7 @@ package com.spenrevival
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.provider.MediaStore
 import android.view.KeyEvent
 
 class CommandManager(private val context: Context) {
@@ -23,7 +24,8 @@ class CommandManager(private val context: Context) {
     }
 
     fun launchCamera(): Boolean {
-        val intent = Intent(Intent.ACTION_IMAGE_CAPTURE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return if (intent.resolveActivity(context.packageManager) != null) {
             context.startActivity(intent)
             true
