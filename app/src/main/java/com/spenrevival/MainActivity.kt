@@ -24,6 +24,7 @@ import kotlin.math.abs
 
 class MainActivity : Activity() {
     private lateinit var status: TextView
+    private lateinit var globalStatus: TextView
     private lateinit var lastGesture: TextView
     private lateinit var lastAction: TextView
     private lateinit var detector: StylusDetector
@@ -71,7 +72,7 @@ class MainActivity : Activity() {
 
         val setupCard = card()
         setupCard.addView(label("AIR COMMAND", 12f, accent, true))
-        setupCard.addView(label("Keep a floating shortcut bubble above your apps. Gesture drawing is available in this app; Android does not provide ordinary apps with unrestricted pen-motion access over every other app.", 14f, Color.WHITE, false, 8))
+        setupCard.addView(label("The Accessibility Service can listen for S Pen-specific motion events on Android 14+. It does not request finger-touch events or read screen contents. Android may route subscribed stylus events through the service, so test normal pen writing after enabling it.", 14f, Color.WHITE, false, 8))
         addButton(setupCard, "Allow floating menu", false) {
             startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
         }
@@ -79,10 +80,11 @@ class MainActivity : Activity() {
         root.addView(setupCard, params(14))
 
         val statusCard = card()
-        status = label("S Pen input is detected while this app is open.", 14f, Color.WHITE, true)
+        status = label("Local S Pen input: waiting", 14f, Color.WHITE, true)
+        globalStatus = label(prefs.getString("global_stylus_status", "Global listener: enable Accessibility Service") ?: "Global listener: enable Accessibility Service", 13f, muted, false, 8)
         lastGesture = label("Last gesture: none", 13f, muted, false, 10)
         lastAction = label("Last action: none", 13f, muted, false, 5)
-        statusCard.addView(status); statusCard.addView(lastGesture); statusCard.addView(lastAction)
+        statusCard.addView(status); statusCard.addView(globalStatus); statusCard.addView(lastGesture); statusCard.addView(lastAction)
         root.addView(statusCard, params(14))
 
         val customCard = card()
@@ -128,7 +130,7 @@ class MainActivity : Activity() {
         }
         root.addView(quick, params(14))
         root.addView(label(
-            "Important: custom drawn gestures are recognized while S Pen Revival is open. The floating Air Command bubble can appear over other apps, but Android does not let this app secretly monitor pen movement across every app. The S25 Ultra S Pen also has no Bluetooth Air Actions hardware.",
+            "Global custom gesture recognition requires the Accessibility Service and Android 14+. It listens only to stylus motion events; finger input and screen contents are not requested. Test whether ordinary S Pen writing still works after enabling the listener.",
             12f, muted, false, 18
         ))
 
