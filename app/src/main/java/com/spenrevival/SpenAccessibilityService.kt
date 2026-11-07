@@ -27,6 +27,8 @@ class SpenAccessibilityService : AccessibilityService() {
     private var menu: LinearLayout? = null
     private var menuVisible = false
     private var listenerStatus: TextView? = null
+    private var captureToggle: TextView? = null
+    private var stylusCaptureEnabled = false
     private lateinit var commands: CommandManager
 
     private val prefs by lazy { getSharedPreferences("spen_settings", Context.MODE_PRIVATE) }
@@ -40,18 +42,10 @@ class SpenAccessibilityService : AccessibilityService() {
         commands = CommandManager(this)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
-        if (Build.VERSION.SDK_INT >= 34) {
-            try {
-                val info = serviceInfo
-                info.setMotionEventSources(InputDevice.SOURCE_STYLUS)
-                setServiceInfo(info)
-                updateListenerStatus("Listening for S Pen events")
-            } catch (error: Exception) {
-                updateListenerStatus("Could not start stylus listener")
-            }
-        } else {
-            updateListenerStatus("Global stylus listening needs Android 14 or newer")
-        }
+        // Global stylus capture stays OFF until the user enables it in the
+        // floating menu. Android routes subscribed stylus events away from
+        // foreground apps, so this tradeoff must be explicit.
+        setStylusCapture(false)
         showFloatingMenuIfAllowed()
     }
 
@@ -198,6 +192,22 @@ class SpenAccessibilityService : AccessibilityService() {
             setPadding(dp(8), dp(8), dp(8), dp(12))
         }
         panel.addView(listenerStatus)
+        captureToggle = TextView(this).apply {
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = rounded(Color.rgb(45, 105, 130), 12)
+            setOnClickListener {
+                setStylusCapture(!stylusCaptureEnabled)
+                menuVisible = false
+                menu?.visibility = View.GONE
+            }
+        }
+        panel.addView(captureToggle, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { bottomMargin = dp(8) })
+        refreshCaptureToggle()
         addMenuAction(panel, "Back") { performGlobalAction(GLOBAL_ACTION_BACK) }
         addMenuAction(panel, "Home") { performGlobalAction(GLOBAL_ACTION_HOME) }
         addMenuAction(panel, "Recent apps") { performGlobalAction(GLOBAL_ACTION_RECENTS) }
@@ -233,6 +243,38 @@ class SpenAccessibilityService : AccessibilityService() {
     private fun toggleMenu() {
         menuVisible = !menuVisible
         menu?.visibility = if (menuVisible) View.VISIBLE else View.GONE
+        if (menuVisible) refreshCaptureToggle()
+    }
+
+    private fun refreshCaptureToggle() {
+        captureToggle?.text = if (stylusCaptureEnabled) {
+            "Stop S Pen gesture capture"
+        } else {
+            "Start S Pen gesture capture"
+        }
+    }
+
+    private fun setStylusCapture(enabled: Boolean) {
+        if (Build.VERSION.SDK_INT < 34) {
+            stylusCaptureEnabled = false
+            updateListenerStatus("Global S Pen gestures need Android 14 or newer")
+            refreshCaptureToggle()
+            return
+        }
+        try {
+            val info = serviceInfo
+            info.setMotionEventSources(if (enabled) InputDevice.SOURCE_STYLUS else 0)
+            setServiceInfo(info)
+            stylusCaptureEnabled = enabled
+            updateListenerStatus(
+                if (enabled) "S Pen capture ON — pen strokes may not reach the app underneath"
+                else "S Pen capture OFF — normal pen input restored"
+            )
+        } catch (_: Exception) {
+            stylusCaptureEnabled = false
+            updateListenerStatus("Could not change S Pen capture")
+        }
+        refreshCaptureToggle()
     }
 
     private fun addMenuAction(parent: LinearLayout, title: String, action: () -> Boolean) {
