@@ -110,6 +110,10 @@ class MainActivity : Activity() {
         customCard.addView(label("Tap Add gesture, draw a shape, name it, and assign an action. The app compares the shape you draw with your saved pattern.", 12f, muted, false, 4))
         gestureList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         customCard.addView(gestureList, params(8))
+        customCard.addView(label("TRY YOUR SAVED GESTURES", 13f, accent, true, 14))
+        customCard.addView(label("Draw a saved shape in this box to run its action. This works while S Pen Revival is open.", 12f, muted, false, 4))
+        customCard.addView(GestureTestPad(this) { points -> matchCustomGesture(points) },
+            LinearLayout.LayoutParams(-1, dp(150)).apply { topMargin = dp(8) })
         addButton(customCard, "+ Add my own gesture", true) { showGestureCreator() }
         root.addView(customCard, params(14))
         refreshCustomGestures()
@@ -327,56 +331,14 @@ class MainActivity : Activity() {
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         detector.handle(event)
-        if (event.actionMasked == MotionEvent.ACTION_DOWN && event.getToolType(0) != MotionEvent.TOOL_TYPE_STYLUS) {
-            customStart(event)
-        } else if (event.actionMasked == MotionEvent.ACTION_MOVE && customDrawing) {
-            customMove(event)
-        } else if (event.actionMasked == MotionEvent.ACTION_UP && customDrawing) {
-            customEnd()
-        }
         return super.dispatchTouchEvent(event)
-    }
-
-    private var customDrawing = false
-    private val activePoints = mutableListOf<GesturePoint>()
-    private var lastCustomAt = 0L
-    private fun customStart(event: MotionEvent) {
-        customDrawing = true
-        activePoints.clear()
-        activePoints.add(GesturePoint(event.x, event.y))
-    }
-    private fun customMove(event: MotionEvent) {
-        val p = GesturePoint(event.x, event.y)
-        val previous = activePoints.lastOrNull()
-        if (previous == null || abs(previous.x - p.x) + abs(previous.y - p.y) > dp(5)) activePoints.add(p)
-    }
-    private fun customEnd() {
-        customDrawing = false
-        if (activePoints.size >= 8 && System.currentTimeMillis() - lastCustomAt > 900) {
-            lastCustomAt = System.currentTimeMillis()
-            matchCustomGesture(activePoints.toList())
-        }
-        activePoints.clear()
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         detector.handle(event)
-        if (event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS) {
-            when (event.actionMasked) {
-                MotionEvent.ACTION_HOVER_ENTER, MotionEvent.ACTION_HOVER_MOVE -> {
-                    if (event.buttonState and (MotionEvent.BUTTON_STYLUS_PRIMARY or MotionEvent.BUTTON_STYLUS_SECONDARY) != 0) {
-                        if (!customDrawing) {
-                            customDrawing = true
-                            activePoints.clear()
-                        }
-                        customMove(event)
-                    }
-                }
-                MotionEvent.ACTION_HOVER_EXIT -> if (customDrawing) customEnd()
-            }
-        }
         return super.dispatchGenericMotionEvent(event)
     }
+
 }
 
 private class GestureDrawingView(context: android.content.Context) : View(context) {
@@ -412,4 +374,51 @@ private class GestureDrawingView(context: android.content.Context) : View(contex
     }
     fun clearDrawing() { points.clear(); invalidate() }
     override fun performClick(): Boolean { super.performClick(); return true }
+}
+
+private class GestureTestPad(
+    context: android.content.Context,
+    private val onGestureDrawn: (List<GesturePoint>) -> Unit
+) : View(context) {
+    private val points = mutableListOf<GesturePoint>()
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(111, 164, 255); strokeWidth = 8f
+        style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+    }
+    private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(24, 31, 47)
+    }
+    override fun onDraw(canvas: android.graphics.Canvas) {
+        canvas.drawRoundRect(0f, 0f, width.toFloat(), height.toFloat(), 22f, 22f, backgroundPaint)
+        if (points.size > 1) {
+            val path = Path()
+            path.moveTo(points.first().x, points.first().y)
+            points.drop(1).forEach { path.lineTo(it.x, it.y) }
+            canvas.drawPath(path, paint)
+        } else {
+            val hint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(174, 187, 207); textSize = 14f
+            }
+            canvas.drawText("Draw a saved gesture here", dp(16).toFloat(), height / 2f, hint)
+        }
+    }
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                points.clear(); points.add(GesturePoint(event.x, event.y)); invalidate(); return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                points.add(GesturePoint(event.x, event.y)); invalidate(); return true
+            }
+            MotionEvent.ACTION_UP -> {
+                points.add(GesturePoint(event.x, event.y)); invalidate()
+                if (points.size >= 8) onGestureDrawn(points.toList())
+                points.clear(); invalidate(); performClick(); return true
+            }
+            MotionEvent.ACTION_CANCEL -> { points.clear(); invalidate(); return true }
+        }
+        return true
+    }
+    override fun performClick(): Boolean { super.performClick(); return true }
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 }
