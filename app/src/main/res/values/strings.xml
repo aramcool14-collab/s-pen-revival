@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="spen_accessibility_description">Shows an optional floating shortcut menu for Back, Home, Recents, volume, media, and camera. It does not read screen content or intercept touch and S Pen motion.</string>
+</resources>
