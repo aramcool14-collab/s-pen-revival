@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="spen_accessibility_description">Shows an optional floating shortcut menu for Back, Home, Recents, volume, media, and camera. It does not read screen content or intercept touch and S Pen motion.</string>
+    <string name="spen_accessibility_description">Listens for S Pen stylus motion events to recognize your saved custom gestures and execute assigned actions, and shows an optional floating shortcut menu. It does not request finger-touch events or read screen contents. Android may route subscribed stylus events through this service while enabled.</string>
 </resources>
