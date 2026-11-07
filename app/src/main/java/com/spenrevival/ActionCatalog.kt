@@ -118,8 +118,6 @@ object ActionCatalog {
         "Open device information"
     )
 
-    private val audio by lazy { null }
-
     fun execute(context: Context, action: String): Boolean {
         val manager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         fun media(code: Int): Boolean {
@@ -209,7 +207,7 @@ object ActionCatalog {
             "Open Samsung Music" -> app("com.sec.android.app.music")
             "Open Samsung Calendar" -> app("com.samsung.android.calendar")
             "Open Samsung Clock" -> app("com.sec.android.app.clockpackage")
-            "Open camera settings" -> settings(Settings.ACTION_CAMERA_SETTINGS)
+            "Open camera settings" -> settings(Settings.ACTION_SETTINGS)
             "Open sound picker" -> launch(Intent(RingtoneManagerCompat.actionRingtonePicker()))
             "Open screen timeout settings", "Open font size settings", "Open magnification settings",
             "Open color correction settings", "Open captions settings", "Open one-handed mode settings",
