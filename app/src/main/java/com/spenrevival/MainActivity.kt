@@ -1,13 +1,15 @@
 package com.spenrevival
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
-import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -30,7 +32,6 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = page
         window.navigationBarColor = page
-        window.decorView.systemUiVisibility = 0
         commands = CommandManager(this)
 
         val root = LinearLayout(this).apply {
@@ -42,25 +43,41 @@ class MainActivity : Activity() {
 
         root.addView(label("S PEN REVIVAL", 13f, accent, true))
         root.addView(label("Your pen. Your shortcuts.", 27f, Color.WHITE, true, 8))
-        root.addView(label("A fresh Air Command-inspired control center", 14f, muted, false, 5))
+        root.addView(label("Air Command-inspired controls", 14f, muted, false, 5))
+
+        val setupCard = card()
+        setupCard.addView(label("USE IT OVER OTHER APPS", 13f, accent, true))
+        setupCard.addView(label(
+            "No split screen. Turn on the two Android permissions below, then a floating ✦ button can stay above your apps.",
+            14f, Color.WHITE, false, 10
+        ))
+        addSetupButton(setupCard, "1 · Allow floating menu") {
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")))
+        }
+        addSetupButton(setupCard, "2 · Enable S Pen Revival controls") {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+        setupCard.addView(label(
+            "The floating menu provides Back, Home, Recents, volume, media and camera shortcuts. It does not read your screen or intercept normal touch/pen input.",
+            12f, muted, false, 8
+        ))
+        root.addView(setupCard, params(top = 20))
 
         val statusCard = card()
-        status = label("Waiting for S Pen…", 16f, Color.WHITE, true)
+        status = label("S Pen input is detected while this app is open.", 15f, Color.WHITE, true)
         lastGesture = label("Last input: none", 14f, muted, false, 12)
         lastAction = label("Last action: none", 14f, muted, false, 6)
         statusCard.addView(status)
         statusCard.addView(lastGesture)
         statusCard.addView(lastAction)
-        root.addView(statusCard, params(top = 22))
+        root.addView(statusCard, params(top = 14))
 
         val gestureCard = card()
-        gestureCard.addView(label("GESTURE SHORTCUTS", 13f, accent, true))
-        gestureCard.addView(label("Use the S Pen tip, or hold its side button while swiping.", 14f, muted, false, 10))
-        gestureCard.addView(label("Tip tap → Open camera", 15f, Color.WHITE, false, 5))
-        gestureCard.addView(label("Button tap → Play / pause", 15f, Color.WHITE, false, 5))
-        gestureCard.addView(label("Swipe left / right → Previous / next track", 15f, Color.WHITE, false, 5))
-        gestureCard.addView(label("Swipe up / down → Volume up / down", 15f, Color.WHITE, false, 5))
-        gestureCard.addView(label("Button + swipe → Same shortcut, with button held", 15f, Color.WHITE, false, 5))
+        gestureCard.addView(label("IN-APP GESTURES", 13f, accent, true))
+        gestureCard.addView(label("Tip tap → Camera · Button tap → Play / pause", 14f, Color.WHITE, false, 10))
+        gestureCard.addView(label("Swipe left / right → Previous / next track", 14f, Color.WHITE, false, 5))
+        gestureCard.addView(label("Swipe up / down → Volume up / down", 14f, Color.WHITE, false, 5))
         root.addView(gestureCard, params(top = 14))
 
         val controls = card()
@@ -74,7 +91,7 @@ class MainActivity : Activity() {
         root.addView(controls, params(top = 14))
 
         root.addView(label(
-            "Testing note: this version detects S Pen input while it is delivered to this app. Android does not let an ordinary app passively capture every stylus gesture across other apps. System-wide support needs compatible system access; we won't enable a mode that could steal or break normal pen input.",
+            "Android limitation: a regular app cannot safely observe every S Pen swipe in every other app without taking over input. This build keeps normal pen and finger input working, and uses a floating menu for system-wide shortcuts instead.",
             12f, muted, false, 18
         ))
 
@@ -113,6 +130,19 @@ class MainActivity : Activity() {
             if (bold) setTypeface(typeface, Typeface.BOLD)
             if (top > 0) setPadding(0, top, 0, 0)
         }
+
+    private fun addSetupButton(parent: LinearLayout, text: String, action: () -> Unit) {
+        val button = Button(this).apply {
+            this.text = text
+            isAllCaps = false
+            setTextColor(Color.WHITE)
+            background = rounded(Color.rgb(39, 75, 125), 15)
+            setOnClickListener { action() }
+        }
+        parent.addView(button, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = 8 })
+    }
 
     private fun addActionButton(parent: LinearLayout, text: String, actionName: String, action: () -> Boolean) {
         val button = Button(this).apply {
